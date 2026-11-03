@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Local configuration; .env.example is the committed template
+.env
+.env.*
+!.env.example
+
+# Challenge brief is not part of the submission
+Code Challenge*
+
+# Pasted into the pull request rather than committed
+PR_DESCRIPTION.md
