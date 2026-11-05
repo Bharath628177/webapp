@@ -1,0 +1,45 @@
+services:
+  mailpit:
+    image: axllent/mailpit:v1.33.0
+    ports:
+      - "8025:8025"
+      # SMTP, so an API running outside Docker can send through it during development
+      - "1025:1025"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUST_PROXY: "true"
+      PRODUCT_SOURCE: ${PRODUCT_SOURCE:-fakestore}
+      FAKE_STORE_BASE_URL: ${FAKE_STORE_BASE_URL:-https://fakestoreapi.com}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-60}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      ENQUIRY_FROM: ${ENQUIRY_FROM:-catalogue@example.com}
+      SALES_INBOX: ${SALES_INBOX:-sales@example.com}
+      ENQUIRY_RATE_LIMIT_PER_MINUTE: ${ENQUIRY_RATE_LIMIT_PER_MINUTE:-5}
+    depends_on:
+      - mailpit
+    healthcheck:
+      # 127.0.0.1, not localhost: busybox wget may try ::1, which the API does not bind
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
